@@ -1,0 +1,240 @@
+```{r}
+ipl=read.csv("C:/Users/Anirban/Desktop/Datasets/ipl/matches.csv",head=T)
+ipl=ipl[,-18]
+delivery=read.csv("C:/Users/Anirban/Desktop/Datasets/ipl/deliveries.csv",head=T)
+```
+
+
+```{r}
+##Venues Played At
+Venues_Played_At=data.frame(levels(ipl$venue))
+colnames(Venues_Played_At)="Venues"
+```
+
+
+```{r}
+##Teams
+library(plyr)
+names=c('MI','KKR','RCB','DC','CSK','RR','DD','GL','KXIP','SRH','RPS','KTK','PW','RPS')
+prev_names=c('Mumbai Indians','Kolkata Knight Riders','Royal Challengers Bangalore','Deccan Chargers','Chennai Super Kings',
+                 'Rajasthan Royals','Delhi Daredevils','Gujarat Lions','Kings XI Punjab',
+                 'Sunrisers Hyderabad','Rising Pune Supergiants','Kochi Tuskers Kerala','Pune Warriors','Rising Pune Supergiant')
+ipl$team1=mapvalues(ipl$team1,prev_names,names)
+ipl$team2=mapvalues(ipl$team2,prev_names,names)
+ipl$toss_winner=mapvalues(ipl$toss_winner,prev_names,names)
+ipl$winner=mapvalues(ipl$winner,prev_names,names)
+delivery$batting_team=mapvalues(delivery$batting_team,prev_names,names)
+delivery$bowling_team=mapvalues(delivery$bowling_team,prev_names,names)
+Teams=data.frame(levels(ipl$team1))
+colnames(Teams)="Teams"
+```
+
+
+```{r}
+##No_of_wins_per_team
+teams=levels(ipl$team1)
+No_of_Wins_Per_Team=data.frame(matrix(0,nrow=length(teams),ncol=2))
+for (i in 1:length(teams)){
+  No_of_Wins_Per_Team[i,]=c(teams[i],sum(ipl$winner==teams[i]))
+}
+colnames(No_of_Wins_Per_Team)=c("Team","Wins")
+barplot(as.numeric(as.vector(No_of_Wins_Per_Team[,2])),names.arg=as.vector(No_of_Wins_Per_Team[,1]),las=1,cex.names = 0.7,col = 89:103,xlab="Teams",ylab="Number of Wins")
+cat ("Team with most wins is:",No_of_Wins_Per_Team[which.max(No_of_Wins_Per_Team[,2]),1])
+```
+
+
+
+```{r}
+##Man Of The Match Awards
+player_of_the_match=levels(ipl$player_of_match)
+no_of_player_of_match_wins=data.frame(matrix(0,nrow=length(player_of_the_match),ncol=2))
+for (i in 1:length(player_of_the_match)){
+  no_of_player_of_match_wins[i,]=c(player_of_the_match[i],sum(ipl$player_of_match==player_of_the_match[i]))
+}
+colnames(no_of_player_of_match_wins)=c("Player Name","Wins")
+cat ("Player with most man of the match awards is:",no_of_player_of_match_wins[which.max(no_of_player_of_match_wins[,2]),1])
+```
+
+```{r}
+##Largest Win by Runs
+Largest_Win_by_runs=data.frame(t(ipl[which.max(ipl$win_by_runs),]))
+colnames(Largest_Win_by_runs)="Match Details"
+```
+
+
+```{r}
+##Biggest Win by wickets
+Biggest_Win_by_wickets=data.frame(t(ipl[which.max(ipl$win_by_wickets),]))
+colnames(Biggest_Win_by_wickets)="Match Details"
+```
+
+
+```{r}
+##Toss Decisions
+Toss_Decisions=data.frame(matrix(0,nrow=1,ncol=2))
+colnames(Toss_Decisions)=c("Bat","Field")
+Toss_Decisions[,1]=sum(ipl$toss_decision=="bat")
+Toss_Decisions[,2]=sum(ipl$toss_decision=="field")
+Toss_Decisions_Percent=Toss_Decisions/sum(Toss_Decisions)*100
+Toss_Decisions_by_Venue=data.frame(matrix(0,nrow=length(Venues_Played_At[,1]),ncol=3))
+for (i in 1:length(Venues_Played_At[,1])){
+  Toss_Decisions_by_Venue[i,2]=sum(ipl$toss_decision[ipl$venue==Venues_Played_At[i,1]]=="bat")
+  Toss_Decisions_by_Venue[i,3]=sum(ipl$toss_decision[ipl$venue==Venues_Played_At[i,1]]=="field")
+}
+Toss_Decisions_by_Venue[,1]=Venues_Played_At[,1]
+Toss_Decisions_Across_Seasons=data.frame(matrix(0,nrow=length(unique(ipl$season)),ncol=3))
+Seasons=unique(ipl$season)
+for (i in 1:length(Seasons)){
+  Toss_Decisions_Across_Seasons[i,2]=sum(ipl$toss_decision[ipl$season==Seasons[i]]=="bat")
+  Toss_Decisions_Across_Seasons[i,3]=sum(ipl$toss_decision[ipl$season==Seasons[i]]=="field")
+}
+Toss_Decisions_Across_Seasons[,1]=Seasons
+```
+
+
+```{r}
+##Team vs Team
+team_vs_team=function(t1,t2){
+  team_team=matrix(0,nrow=length(Seasons),ncol=3)
+  colnames(team_team)=c("Season",t1,t2)
+  for (i in 1:length(Seasons)){
+    no_of_matches_between=sum(ipl$season[ipl$team1==t1 & ipl$team2==t2]==Seasons[i])
+    team_team[i,2]=sum(ipl$winner[ipl$season==Seasons[i] & ipl$team1==t1 & ipl$team2==t2]==t1)
+    team_team[i,3]=no_of_matches_between-team_team[i,2]
+  }
+  team_team[,1]=Seasons
+  return (team_team)
+}
+```
+
+```{r}
+##Score per season
+Score_Season=function(s){
+  indices=ipl$id[ipl$season==s]
+  run_scored=0
+  for (i in 1:length(indices)){
+    run_scored=run_scored+sum(delivery$total_runs[delivery$match_id==indices[i]])
+  }
+  return(run_scored)
+} 
+Seasons=sort.int(Seasons)
+Total_Run_Scored=rep(0,length(Seasons))
+for (i in 1:length(Seasons)){
+  Total_Run_Scored[i]=Score_Season(Seasons[i])
+}
+plot(Seasons,Total_Run_Scored,ty="l",col="blue")
+
+No_of_matches_season=function(s){
+  return (sum(ipl$season==s))
+}
+
+Average_Run_Scored=rep(0,length(Seasons))
+for (i in 1:length(Seasons)){
+  Average_Run_Scored[i]=Total_Run_Scored[i]/No_of_matches_season(Seasons[i])
+}
+plot(Seasons,Average_Run_Scored,ty="l")
+```
+
+
+```{r}
+##Batsman Consistancy
+
+Batsman_Consistancy=function(b){
+  runs=numeric(0)
+  batsman_present=batsman_in_match(b)
+  for (i in 1:length(batsman_present)){
+    runs=append(runs,sum(delivery$batsman_runs[delivery$match_id==batsman_present[i] & delivery$batsman==b]))
+  }
+  if (length(runs)>1){
+  return (sd(runs))}
+  else{return (-1)}
+}
+
+Batsman_Consistancy_Runs=function(b){
+  runs=numeric(0)
+  batsman_present=batsman_in_match(b)
+  for (i in 1:length(batsman_present)){
+    runs=append(runs,sum(delivery$batsman_runs[delivery$match_id==batsman_present[i] & delivery$batsman==b]))
+  }
+  return (sd(runs))
+}
+
+Batsman_Contribution=function(b){
+  runs=numeric(0)
+  team_runs=numeric(0)
+  batsman_present=batsman_in_match(b)
+  for (i in 1:length(batsman_present)){
+    runs=append(runs,sum(delivery$batsman_runs[delivery$match_id==batsman_present[i] & delivery$batsman==b]))
+    team_runs=append(team_runs,sum(delivery$total_runs[delivery$match_id==batsman_present[i]]))
+  }
+  return (mean(runs/team_runs))
+}
+```
+
+
+```{r}
+##Batsman Reliability
+Scale=function(x,y){
+  return ((x-min(y))/(max(y)-min(y))+1)
+}
+
+
+Batsman_Reliability=function(b,x){
+  score=0.7*1/Scale(x$Consistancy[x$Batsman==b],x$Consistancy)+0.2*Scale(x$Contribution[x$Batsman==b],x$Contribution)+0.1*Scale(x$Strike_Rate[x$Batsman==b],x$Strike_Rate)
+  return (score)
+}
+```
+
+
+
+
+```{r}
+##Batsman Comparison
+
+##Runs by a batsman in a match
+batsman_in_match=function(b){
+  indices=unique(delivery$match_id[delivery$batsman==b])
+  return (indices)
+}
+
+Max_batsman=function(b){
+  index=batsman_in_match(b)
+  runs=rep(0,length((index)))
+  for (i in  1:length(index)){
+    runs[i]=sum(delivery$batsman_runs[delivery$match_id==index[i]&delivery$batsman==b])
+  }
+  return (max(runs))
+}
+##Runs by Batsman
+Batsman=levels(delivery$batsman)
+Batsman_data=data.frame(matrix(0,nrow=length(Batsman),ncol=11))
+Batsman_data[,1]=Batsman
+for (i in 1:length(Batsman)){
+  Batsman_data[i,3]=sum(delivery$batsman_runs[delivery$batsman==Batsman[i]])
+  Batsman_data[i,2]=sum(delivery$batsman==Batsman[i])
+  Batsman_data[i,4]=sum(delivery$batsman_runs[delivery$batsman==Batsman[i]]==4)
+  Batsman_data[i,5]=sum(delivery$batsman_runs[delivery$batsman==Batsman[i]]==6)
+  Batsman_data[i,6]=Max_batsman(Batsman[i])
+  Batsman_data[i,9]=Batsman_data[i,3]/(sum(delivery$player_dismissed==Batsman[i]))
+  Batsman_data[i,8]=Batsman_Consistancy(Batsman[i])/Batsman_data[i,9]
+  Batsman_data[i,10]=Batsman_Contribution(Batsman[i])
+  #Batsman_data[i,11]=Batsman_Reliability(Batsman[i])
+}
+Batsman_data[,7]=(Batsman_data$Runs/Batsman_data$Balls_Faced)*100
+colnames(Batsman_data)=c("Batsman","Balls_Faced","Runs","Fours","Six","Highest_Score","Strike_Rate","Consistancy","Batting_Average","Contribution","Reliability")
+
+
+
+Batsman_data_top=Batsman_data[Batsman_data$Balls_Faced > 500,]
+for (i in 1:dim(Batsman_data_top)[1]){
+  Batsman_data_top[i,11]=Batsman_Reliability(Batsman_data_top[i,1],Batsman_data_top)
+}
+colnames(Batsman_data_top)=c("Batsman","Balls_Faced","Runs","Fours","Six","Highest_Score","Strike_Rate","Consistancy","Batting_Average","Contribution","Reliability")
+
+Batsman_data_top=Batsman_data_top[order(Batsman_data_top$Reliability,decreasing=T),]
+
+```
+
+
+
+
