@@ -1,0 +1,2 @@
+# IPL-Search-for-the-most-reliable-team
+IPL or Indian Premier Leauge is an annual domestic cricket competition held in India. It features players from all over the world. Here I have ball by ball data on matches from season of 2008 to 2016. This project will go on to help people playing in the IPL fantasy leauge where you have to select a team based on your preferences so as to accumulate most points while the matches are played.  The aim of the project is to present a statistical masure of reliability and to form a team based on the same. 
